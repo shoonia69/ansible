@@ -117,7 +117,8 @@ pre_tasks:
         src: lighthouse.conf.j2
         dest: /etc/nginx/conf.d/lighthouse.conf
         mode: 0644
-      notify: Nginx reload```
+      notify: Nginx reload
+```
 
 Код выполнения плейбука:
 
