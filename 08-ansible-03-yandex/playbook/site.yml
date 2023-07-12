@@ -1,0 +1,139 @@
+---
+- name: Install Clickhouse
+  hosts: clickhouse
+  handlers:
+    - name: Start clickhouse service
+      become: true
+      ansible.builtin.service:
+        name: clickhouse-server
+        state: restarted
+  tasks:
+    - block:
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
+            dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
+          with_items: "{{ clickhouse_packages }}"
+      rescue:
+        - name: Get clickhouse distrib
+          ansible.builtin.get_url:
+            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
+            dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
+      tags:
+       - Clickhouse
+       - download
+    - name: Install clickhouse packages
+      become: true
+      ansible.builtin.dnf:
+        disable_gpg_check: true
+        name:
+          - clickhouse-common-static-{{ clickhouse_version }}.rpm
+          - clickhouse-client-{{ clickhouse_version }}.rpm
+          - clickhouse-server-{{ clickhouse_version }}.rpm
+      tags:
+       - clickhouse
+       - install
+      notify: Start clickhouse service
+    - name: Flush handlers
+      meta: flush_handlers
+
+    - name: Check if port 9000 is listening
+      wait_for:
+        port: 9000
+        delay: 5
+        timeout: 30
+        msg: "Timeout waiting for 9000 to respond"
+
+    - name: Create database
+      ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
+      register: create_db
+      failed_when: create_db.rc != 0 and create_db.rc !=82
+      changed_when: create_db.rc == 0
+
+- name: Install Vector
+  hosts: vector
+  handlers:
+    - name: Start Vector service
+      become: true
+      ansible.builtin.service:
+        name: vector
+        state: restarted
+  tasks:
+    - name: Create dir for distrib
+      ansible.builtin.file:
+       path: "{{ vector_distr_dir }}"
+       state: directory
+    - name: Get Vector distrib
+      ansible.builtin.get_url:
+        url: "https://packages.timber.io/vector/0.31.0/vector-{{ vector_version }}.rpm"
+        dest: "{{ vector_distr_dir }}"
+      tags:
+       - vector
+       - download
+    - name:  Install Vector packages
+      become: true
+      ansible.builtin.yum:
+        name: "{{ vector_distr_dir }}/vector-{{ vector_version }}.rpm"
+        disable_gpg_check: true
+      notify: Start Vector service
+      tags:
+       - vector
+       - install
+    - name: Apply Vector template
+      become: true
+      ansible.builtin.template:
+        src: "./templates/vector.yml.j2"
+        dest: "/etc/vector/vector.yml"
+        mode: "0644"
+      tags:
+       - template
+    
+- name: Install LightHouse
+  hosts: lighthouse
+  become: true
+  handlers:
+  - name: Nginx reload
+    become: true
+    ansible.builtin.service:
+      name: nginx
+      state: restarted
+  pre_tasks:
+   - name: install git and repo
+     ansible.builtin.dnf:
+      name:
+        - git
+        - epel-release
+      state: present
+  tasks:
+    - name: nginx install
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+    - name: Apply nginx config
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: 0644
+    - name: copy from git
+      ansible.builtin.git:
+        repo: "{{ light_repo }}"
+        version: master
+        dest: "{{ light_dir }}"
+    - name: change selinux contex
+      ansible.builtin.file:
+        path: "{{ light_dir }}"
+        setype: httpd_sys_content_t
+        recurse: true
+    - name: Create Lighthouse config
+      ansible.builtin.template:
+        src: lighthouse.conf.j2
+        dest: /etc/nginx/conf.d/lighthouse.conf
+        mode: 0644
+      notify: Nginx reload
+  tags:
+      - light
+  
+    
+    
+
+

@@ -1,0 +1,11 @@
+---
+ vector_version: "0.31.0-1.x86_64"
+ vector_distr_dir: "/home/mailo/vector-distrib"
+ vector_config:
+  sinks:
+   my_sink_id:
+     type: clickhouse
+     inputs:
+      - my-source-or-transform-id
+     endpoint: http://158.160.113.224:8123
+     table: mytable
