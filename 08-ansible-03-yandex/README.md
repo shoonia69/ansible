@@ -62,7 +62,8 @@
     become: true
     ansible.builtin.service:
       name: nginx
-      state: restarted```
+      state: restarted
+```
 
 Пре-таски по установке пакетов git и добавлению репозитория для скачивания nginx
 
