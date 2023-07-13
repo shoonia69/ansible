@@ -30,6 +30,27 @@
 
 В яндекс облаке подготовливаются 3 ВМ посредством терраформ.
 Данные из output terraform передаются в файл инвентаря для ansible.
+
+Файл доступен по [ссылке](https://github.com/shoonia69/ansible/blob/main/08-ansible-03-yandex/playbook/inventory/prod.yml).
+Содержимое файла:
+
+```
+all:
+ children:
+  clickhouse:
+    hosts:
+      clickhouse_vm:
+       ansible_host: 51.250.0.240
+  vector:
+    hosts:
+      vector_vm:
+        ansible_host: 84.201.133.55
+  lighthouse:
+    hosts:
+      lighthouse_vm:
+         ansible_host: 62.84.119.39
+```
+
 При создании ВМ в яндекс облаке использется ОС Centos Stream OS 8.
 Общий плейбук переработан под данную ОС.
 
@@ -58,7 +79,8 @@
 
 Хэндлер по перезапуску Nginx
 
-```  - name: Nginx reload
+```
+- name: Nginx reload
     become: true
     ansible.builtin.service:
       name: nginx
@@ -85,7 +107,7 @@ pre_tasks:
         state: present
  ```
 
-Создание конфига для nginx
+Создание базового конфига для nginx
 
 ```
  - name: Apply nginx config
@@ -95,16 +117,19 @@ pre_tasks:
         mode: 0644
 ```
 
-Копирование гит-репозитория Лайтхаус в определнную папку на ВМ
+Копирование гит-репозитория Лайтхаус в определнную папку на ВМ.
+Переменные берутся из фалов переменных - [ссылка](https://github.com/shoonia69/ansible/blob/main/08-ansible-03-yandex/playbook/group_vars/lighthouse/vars.yml).
 
-```    - name: copy from git
+```
+- name: copy from git
       ansible.builtin.git:
         repo: "{{ light_repo }}"
         version: master
         dest: "{{ light_dir }}"
  ```
 
-Изменение selinux контекста, для папок Лайтхаус
+Изменение selinux контекста, для папок Лайтхаус.
+Переменные берутся из фалов переменных - [ссылка](https://github.com/shoonia69/ansible/blob/main/08-ansible-03-yandex/playbook/group_vars/lighthouse/vars.yml).
 
 ```
  - name: change selinux contex
@@ -114,7 +139,8 @@ pre_tasks:
         recurse: true
 ```
 
-Копирование конфига Лайтхаус
+Копирование конфига Лайтхаус.
+Конфиг настраивается из j2 шаблона. Файл шаблона доступен по [ссылке](https://github.com/shoonia69/ansible/blob/main/08-ansible-03-yandex/playbook/templates/lighthouse.conf.j2)
 
 ```
 - name: Create Lighthouse config
