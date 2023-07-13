@@ -83,16 +83,17 @@ pre_tasks:
       ansible.builtin.dnf:
         name: nginx
         state: present
-        ```
+ ```
 
 Создание конфига для nginx
 
-```    - name: Apply nginx config
+```
+ - name: Apply nginx config
       ansible.builtin.template:
         src: nginx.conf.j2
         dest: /etc/nginx/nginx.conf
         mode: 0644
-        ```
+```
 
 Копирование гит-репозитория Лайтхаус в определнную папку на ВМ
 
@@ -101,19 +102,22 @@ pre_tasks:
         repo: "{{ light_repo }}"
         version: master
         dest: "{{ light_dir }}"
-        ```
+ ```
 
 Изменение selinux контекста, для папок Лайтхаус
 
-```    - name: change selinux contex
+```
+ - name: change selinux contex
       ansible.builtin.file:
         path: "{{ light_dir }}"
         setype: httpd_sys_content_t
-        recurse: true```
+        recurse: true
+```
 
 Копирование конфига Лайтхаус
 
-```    - name: Create Lighthouse config
+```
+- name: Create Lighthouse config
       ansible.builtin.template:
         src: lighthouse.conf.j2
         dest: /etc/nginx/conf.d/lighthouse.conf
