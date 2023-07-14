@@ -104,34 +104,50 @@
         - git
         - epel-release
       state: present
+     tags:
+      - light
+      - install      
   tasks:
     - name: nginx install
       ansible.builtin.dnf:
         name: nginx
         state: present
+      tags:
+         - light
+         - install  
     - name: Apply nginx config
       ansible.builtin.template:
         src: nginx.conf.j2
         dest: /etc/nginx/nginx.conf
         mode: 0644
+      tags:
+         - light
+         - template
     - name: copy from git
       ansible.builtin.git:
         repo: "{{ light_repo }}"
         version: master
         dest: "{{ light_dir }}"
+      tags:
+          - light
+          - download
     - name: change selinux contex
       ansible.builtin.file:
         path: "{{ light_dir }}"
         setype: httpd_sys_content_t
         recurse: true
+      tags:
+          - light
     - name: Create Lighthouse config
       ansible.builtin.template:
         src: lighthouse.conf.j2
         dest: /etc/nginx/conf.d/lighthouse.conf
         mode: 0644
       notify: Nginx reload
-  tags:
-      - light
+      tags:
+          - light
+          - template
+
   
     
     
